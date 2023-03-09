@@ -1399,8 +1399,17 @@ impl StacksChainState {
     ) -> Result<Option<Hash160>, Error> {
         let sql = "SELECT microblock_pubkey_hash FROM staging_blocks WHERE anchored_block_hash = ?1 AND consensus_hash = ?2 AND processed = 0 AND orphaned = 0";
         let args: &[&dyn ToSql] = &[&block_hash, &consensus_hash];
-        let rows = query_row_columns::<Hash160, _>(block_conn, sql, args, "microblock_pubkey_hash")
-            .map_err(Error::DBError)?;
+        // let rows = match query_row_columns::<Hash160, _>(block_conn, sql, args, "microblock_pubkey_hash") {
+        //     Ok(r) => Ok(r),
+        //     Err(e) => {
+        //         info!("MAP: error in load pubkey {:?}", &e);
+        //         return Err(Error::DBError(e));
+        //     }
+        // }?;
+        let res = query_row_columns::<Hash160, _>(block_conn, sql, args, "microblock_pubkey_hash");
+        info!("MAP: load pubkey {:?}", res);
+        let rows = res.map_err(Error::DBError)?;
+
         match rows.len() {
             0 => Ok(None),
             1 => Ok(Some(rows[0].clone())),
@@ -1433,6 +1442,7 @@ impl StacksChainState {
                 )? {
                     Some(block_header) => block_header,
                     None => {
+                        info!("MAP: parent not available");
                         // parent isn't available
                         return Ok(None);
                     }
@@ -1992,8 +2002,8 @@ impl StacksChainState {
         parent_anchored_block_hash: &BlockHeaderHash,
         microblock: &StacksMicroblock,
     ) -> Result<(), Error> {
-        test_debug!(
-            "Store staging microblock {}/{}-{}",
+        info!(
+            "MAP: Store staging microblock {}/{}-{}",
             parent_consensus_hash,
             parent_anchored_block_hash,
             microblock.block_hash()
@@ -3158,7 +3168,7 @@ impl StacksChainState {
     /// Do we have any microblock available to serve in any capacity, given its parent anchored block's
     /// index block hash?
     #[cfg(test)]
-    fn has_microblocks_indexed(
+    pub(crate) fn has_microblocks_indexed(
         &self,
         parent_index_block_hash: &StacksBlockId,
     ) -> Result<bool, Error> {
@@ -4275,8 +4285,8 @@ impl StacksChainState {
         parent_anchored_block_hash: &BlockHeaderHash,
         microblock: &StacksMicroblock,
     ) -> Result<bool, Error> {
-        debug!(
-            "preprocess microblock {}/{}-{}, parent {}",
+        info!(
+            "MAP: preprocess microblock {}/{}-{}, parent {}",
             parent_consensus_hash,
             parent_anchored_block_hash,
             microblock.block_hash(),
@@ -4290,7 +4300,7 @@ impl StacksChainState {
 
         // already queued or already processed?
         if self.has_descendant_microblock_indexed(&parent_index_hash, &microblock.block_hash())? {
-            debug!(
+            info!(
                 "Microblock already stored and/or processed: {}/{} {} {}",
                 parent_consensus_hash,
                 &parent_anchored_block_hash,
@@ -4319,6 +4329,7 @@ impl StacksChainState {
             // don't have the parent
             return Ok(false);
         };
+        info!("MAP: debug after pubkey hash");
 
         let mut dup = microblock.clone();
         if let Err(e) = dup.verify(&pubkey_hash) {
@@ -4328,7 +4339,7 @@ impl StacksChainState {
                 pubkey_hash,
                 &e
             );
-            warn!("{}", &msg);
+            info!("{}", &msg);
             return Err(Error::InvalidStacksMicroblock(msg, microblock.block_hash()));
         }
 
@@ -4339,7 +4350,7 @@ impl StacksChainState {
                 "Invalid microblock {}: one or more transactions failed static tests",
                 microblock.block_hash()
             );
-            warn!("{}", &msg);
+            info!("{}", &msg);
             return Err(Error::InvalidStacksMicroblock(msg, microblock.block_hash()));
         }
 

@@ -2919,12 +2919,12 @@ pub mod test {
             let ibd =
                 last_processed_height + (burnchain.stable_confirmations as u64) < burnchain_height;
             if ibd {
-                debug!(
+                info!(
                     "PoX watchdog: {} + {} < {}, so initial block download",
                     last_processed_height, burnchain.stable_confirmations, burnchain_height
                 );
             } else {
-                debug!(
+                info!(
                     "PoX watchdog: {} + {} >= {}, so steady-state",
                     last_processed_height, burnchain.stable_confirmations, burnchain_height
                 );
@@ -2951,6 +2951,7 @@ pub mod test {
                 stacks_tip_height,
                 burn_tip_height,
             );
+            info!("MAP: value of ibd in step {:?}", ibd);
 
             let ret = self.network.run(
                 &mut sortdb,
