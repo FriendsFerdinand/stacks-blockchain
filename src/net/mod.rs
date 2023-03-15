@@ -2533,7 +2533,7 @@ pub mod test {
                 ..TestPeerConfig::default()
             };
             config.data_url =
-                UrlString::try_from(format!("http://127.0.0.1:{}", config.http_port).as_str())
+                UrlString::try_from(format!("http://127.0.0.1:{}", config.http_port))
                     .unwrap();
             config
         }
@@ -2546,7 +2546,7 @@ pub mod test {
                 ..TestPeerConfig::default()
             };
             config.data_url =
-                UrlString::try_from(format!("http://127.0.0.1:{}", config.http_port).as_str())
+                UrlString::try_from(format!("http://127.0.0.1:{}", config.http_port))
                     .unwrap();
             config
         }
@@ -2919,12 +2919,12 @@ pub mod test {
             let ibd =
                 last_processed_height + (burnchain.stable_confirmations as u64) < burnchain_height;
             if ibd {
-                info!(
+                debug!(
                     "PoX watchdog: {} + {} < {}, so initial block download",
                     last_processed_height, burnchain.stable_confirmations, burnchain_height
                 );
             } else {
-                info!(
+                debug!(
                     "PoX watchdog: {} + {} >= {}, so steady-state",
                     last_processed_height, burnchain.stable_confirmations, burnchain_height
                 );
@@ -2951,7 +2951,6 @@ pub mod test {
                 stacks_tip_height,
                 burn_tip_height,
             );
-            info!("MAP: value of ibd in step {:?}", ibd);
 
             let ret = self.network.run(
                 &mut sortdb,
